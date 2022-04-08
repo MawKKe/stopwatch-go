@@ -1,3 +1,4 @@
 .*.sw*
 stopwatch-go
+stopwatch-go.exe
 *.csv
