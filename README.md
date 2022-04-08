@@ -23,6 +23,8 @@ the `stdin` file descriptor. If you need to collect information reliably or
 accurately, I recommend setting up actual automated electronic sensors and
 recording equipment (not covered by this application).
 
+[![Go](https://github.com/MawKKe/stopwatch-go/actions/workflows/go.yml/badge.svg)](https://github.com/MawKKe/stopwatch-go/actions/workflows/go.yml)
+
 # Install
 
     $ go install github.com/MawKKe/stopwatch-go@latest
