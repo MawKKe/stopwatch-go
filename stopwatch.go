@@ -129,13 +129,19 @@ loop:
 
 	// Write events into file; either stdout or
 	if *outFile == "-" || *outFile == "" {
-		DumpCSV(os.Stdout, events, *outComment)
+		err := DumpCSV(os.Stdout, events, *outComment)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		f, err := os.Create(*outFile)
 		if err != nil {
 			panic(err)
 		}
 		defer f.Close()
-		DumpCSV(f, events, *outComment)
+		err = DumpCSV(f, events, *outComment)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
