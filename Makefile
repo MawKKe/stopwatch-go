@@ -20,6 +20,6 @@ fix:
 	find . -type f -iname "*.go" -exec goimports -w {} +
 
 clean:
-	rm -rf stopwatch-go stopwatch-go.exe
+	rm -rf stopwatch-go stopwatch-go.exe *.csv
 
 .PHONY: build test fmt vet
