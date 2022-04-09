@@ -100,6 +100,7 @@ func main() {
 			*/
 			if err == io.EOF {
 				chanSig <- syscall.SIGTERM
+				return
 			}
 			chanEvt <- time.Now()
 		}
