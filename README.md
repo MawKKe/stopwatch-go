@@ -1,9 +1,10 @@
 # stopwatch-go
-Collect timestamps of events and report them as CSV. Written in Go.
+An interactive command line tool for collecting timestamps of events in CSV
+format. Written in Go.
 
-Useful for manually recording occurrences of various phenomena.  Analyzing the
-timestamps may then help user to figure out the cause or source of the
-phenomena.
+Useful for manually recording occurrences of various phenomena. Analyzing the
+timestamps may then help user to reason about the characteristics and source
+of the phenomena.
 
 Example: you have a mechanical machine that suddenly starts to make worrying
 clicking noises. You start the stopwatch and every time you hear a click,
