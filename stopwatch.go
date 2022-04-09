@@ -85,8 +85,8 @@ func main() {
 	var events []Event
 	var ctr int32
 
-	tick := func(kind string, t time.Time) {
-		events = append(events, Event{Seq: ctr, Timestamp: t, What: kind})
+	tick := func(what string, t time.Time) {
+		events = append(events, Event{Seq: ctr, Timestamp: t, What: what})
 		ctr++
 	}
 
