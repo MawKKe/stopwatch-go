@@ -50,8 +50,18 @@ func GetEventColumnNames() []string {
 	return hdr
 }
 
-// Write a slice of Events into output file in CSV mode.
-func DumpCSV(out io.Writer, events []Event, comment string) (err error) {
+// Convert a sequence of events to string representation
+func EventsToRecords(events []Event) [][]string {
+	var rows [][]string
+	rows = append(rows, GetEventColumnNames())
+	for _, evt := range events {
+		rows = append(rows, evt.Row())
+	}
+	return rows
+}
+
+// Write a sequence of records into output file in CSV mode.
+func DumpCSV(out io.Writer, records [][]string, comment string) (err error) {
 	// All of the errors from here on out will be problems with file writing
 	// the actual nature of the error is more or less identical
 	// This defer function wraps all these errors with approrpiate context; also
@@ -68,12 +78,7 @@ func DumpCSV(out io.Writer, events []Event, comment string) (err error) {
 			return err
 		}
 	}
-	var rows [][]string
-	rows = append(rows, GetEventColumnNames())
-	for _, evt := range events {
-		rows = append(rows, evt.Row())
-	}
-	err = w.WriteAll(rows)
+	err = w.WriteAll(records)
 	return
 }
 
@@ -133,17 +138,20 @@ loop:
 	// Make sure next print will be on a fresh line
 	fmt.Fprintln(os.Stderr, "")
 
+	// convert records to text form
+	records := EventsToRecords(events)
+
 	// Write events into file; either stdout or
 	err := func() error {
 		if *outFile == "-" || *outFile == "" {
-			return DumpCSV(os.Stdout, events, *outComment)
+			return DumpCSV(os.Stdout, records, *outComment)
 		} else {
 			f, err := os.Create(*outFile)
 			if err != nil {
 				return fmt.Errorf("could not create file: %w", err)
 			}
 			defer f.Close()
-			return DumpCSV(f, events, *outComment)
+			return DumpCSV(f, records, *outComment)
 		}
 	}()
 
