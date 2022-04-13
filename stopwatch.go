@@ -83,7 +83,8 @@ func DumpCSV(out io.Writer, records [][]string, comment string) (err error) {
 }
 
 func main() {
-	outFile := flag.String("o", "-", "Output file path (Optional, default: stdout)")
+	outFile := flag.String("o", "", "Output file path (Optional, default: stdout)\n" +
+                                    "Values \"\" and \"-\" are interpreted as stdout")
 	outComment := flag.String("c", "", "Comment for the output file. Optional")
 	flag.Parse()
 
