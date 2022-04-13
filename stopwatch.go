@@ -116,6 +116,7 @@ func main() {
 		}
 	}()
 
+	// Print all info messages to stderr, as data might be printed to stdout
 	fmt.Fprintln(os.Stderr, "# Record: <enter>, Exit: <ctrl+d> or <ctrl+c>")
 
 	tick("enter", time.Now())
