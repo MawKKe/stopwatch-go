@@ -84,12 +84,32 @@ func DumpCSV(out io.Writer, records [][]string, comment string) (err error) {
 	return
 }
 
+func collect(ctx context.Context, tickChan <-chan struct{}) (events []Event) {
+	var ctr int32
+	events = append(events, Event{Seq: ctr, Timestamp: time.Now(), What: "enter"})
+loop:
+	for {
+		fmt.Fprintf(os.Stderr, "# Waiting for [%v]> ", ctr)
+		select {
+		case <-ctx.Done():
+			break loop // plain 'break' would break from select, not the loop.
+		case <-tickChan:
+			t := time.Now()
+			events = append(events, Event{Seq: ctr, Timestamp: t, What: "tick"})
+			ctr++
+		}
+	}
+	events = append(events, Event{Seq: ctr, Timestamp: time.Now(), What: "exit"})
+	return
+}
+
 func main() {
 	outFile := flag.String("o", "", "Output file path (Optional, default: stdout)\n"+
 		"Values \"\" and \"-\" are interpreted as stdout")
 	outComment := flag.String("c", "", "Comment for the output file. Optional")
 	flag.Parse()
 
+	// capture signals and handle cancellation via Context
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
@@ -97,15 +117,7 @@ func main() {
 		cancel()
 	}()
 
-	chanEvt := make(chan time.Time)
-
-	var events []Event
-	var ctr int32
-
-	tick := func(what string, t time.Time) {
-		events = append(events, Event{Seq: ctr, Timestamp: t, What: what})
-		ctr++
-	}
+	tickChan := make(chan struct{})
 
 	go func() {
 		for {
@@ -120,40 +132,28 @@ func main() {
 				cancel()
 				return
 			}
-			chanEvt <- time.Now()
+
+			// (new)line received, notify collector
+			tickChan <- struct{}{}
 		}
 	}()
 
 	// Print all info messages to stderr, as data might be printed to stdout
 	fmt.Fprintln(os.Stderr, "# Record: <enter>, Exit: <ctrl+d> or <ctrl+c>")
 
-	tick("enter", time.Now())
+	events := collect(ctx, tickChan)
 
-loop:
-	for {
-		fmt.Fprintf(os.Stderr, "# Waiting for [%v]> ", ctr)
-		select {
-		case <-ctx.Done(): // either we got signal, or EOF from stdin.
-			break loop
-		case t := <-chanEvt: // got event, record, continue
-			tick("tick", t)
-			continue
-		}
-
-	}
 	// In case we exited loop due to a signal, the stdin goroutine
 	// is still running. Here we close stdin manually to signal the
 	// goroutine to exit. The goroutine will receive EOF, and call
 	// cancel() on the context (again?)
 	os.Stdin.Close()
 
-	tick("exit", time.Now())
+	// convert records to text form
+	records := EventsToRecords(events)
 
 	// Make sure next print will be on a fresh line
 	fmt.Fprintln(os.Stderr, "")
-
-	// convert records to text form
-	records := EventsToRecords(events)
 
 	// Write events into file; either stdout or
 	err := func() error {
