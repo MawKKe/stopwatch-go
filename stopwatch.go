@@ -27,19 +27,20 @@ import (
 	"time"
 )
 
-// Represents an event to be recorded
+// Event represents an event to be recorded
 type Event struct {
 	Seq       int32     `csv:"seq"`  // sequence number of the event
 	Timestamp time.Time `csv:"ts"`   // when the event happened
 	What      string    `csv:"what"` // description of the event
 }
 
-// Convert an Event into a slice of strings. Used for writing Event as CSV record.
+// Row converts an Event into a slice of strings. Used for writing Event as CSV record.
 func (e Event) Row() []string {
 	return []string{fmt.Sprintf("%d", e.Seq), e.Timestamp.Format(time.RFC3339Nano), e.What}
 }
 
-// Produce a slice of column names from Event. Used for writing CSV header.
+// GetEventColumnNames produces a slice of column names from Event. Used for
+// writing CSV header.
 func GetEventColumnNames() []string {
 	var hdr []string
 	etype := reflect.TypeOf(Event{})
@@ -50,7 +51,7 @@ func GetEventColumnNames() []string {
 	return hdr
 }
 
-// Convert a sequence of events to string representation
+// EventsToRecords converts a sequence of events to string representation
 func EventsToRecords(events []Event) [][]string {
 	var rows [][]string
 	rows = append(rows, GetEventColumnNames())
@@ -60,7 +61,7 @@ func EventsToRecords(events []Event) [][]string {
 	return rows
 }
 
-// Write a sequence of records into output file in CSV mode.
+// DumpCSV writes a sequence of records into output file in CSV mode.
 func DumpCSV(out io.Writer, records [][]string, comment string) (err error) {
 	// All of the errors from here on out will be problems with file writing
 	// the actual nature of the error is more or less identical
@@ -73,7 +74,7 @@ func DumpCSV(out io.Writer, records [][]string, comment string) (err error) {
 	}()
 	w := csv.NewWriter(out)
 	if comment != "" {
-		_, err := fmt.Fprintln(out, fmt.Sprintf("# %v", comment))
+		_, err := fmt.Fprintf(out, "# %v\n", comment)
 		if err != nil {
 			return err
 		}
@@ -83,8 +84,8 @@ func DumpCSV(out io.Writer, records [][]string, comment string) (err error) {
 }
 
 func main() {
-	outFile := flag.String("o", "", "Output file path (Optional, default: stdout)\n" +
-                                    "Values \"\" and \"-\" are interpreted as stdout")
+	outFile := flag.String("o", "", "Output file path (Optional, default: stdout)\n"+
+		"Values \"\" and \"-\" are interpreted as stdout")
 	outComment := flag.String("c", "", "Comment for the output file. Optional")
 	flag.Parse()
 
@@ -124,7 +125,7 @@ func main() {
 
 loop:
 	for {
-		fmt.Fprint(os.Stderr, fmt.Sprintf("# Waiting for [%v]> ", ctr))
+		fmt.Fprintf(os.Stderr, "# Waiting for [%v]> ", ctr)
 		select {
 		case <-chanSig: // got signal, exit
 			break loop
@@ -147,14 +148,13 @@ loop:
 	err := func() error {
 		if *outFile == "-" || *outFile == "" {
 			return DumpCSV(os.Stdout, records, *outComment)
-		} else {
-			f, err := os.Create(*outFile)
-			if err != nil {
-				return fmt.Errorf("could not create file: %w", err)
-			}
-			defer f.Close()
-			return DumpCSV(f, records, *outComment)
 		}
+		f, err := os.Create(*outFile)
+		if err != nil {
+			return fmt.Errorf("could not create file: %w", err)
+		}
+		defer f.Close()
+		return DumpCSV(f, records, *outComment)
 	}()
 
 	if err != nil {
