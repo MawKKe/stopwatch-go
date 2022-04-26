@@ -36,7 +36,7 @@ type Event struct {
 
 // Convert an Event into a slice of strings. Used for writing Event as CSV record.
 func (e Event) Row() []string {
-	return []string{fmt.Sprintf("%v", e.Seq), e.Timestamp.Format(time.RFC3339Nano), e.What}
+	return []string{fmt.Sprintf("%d", e.Seq), e.Timestamp.Format(time.RFC3339Nano), e.What}
 }
 
 // Produce a slice of column names from Event. Used for writing CSV header.
