@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -89,10 +90,14 @@ func main() {
 	outComment := flag.String("c", "", "Comment for the output file. Optional")
 	flag.Parse()
 
-	chanSig := make(chan os.Signal, 1)
-	chanEvt := make(chan time.Time)
+	ctx, cancel := signal.NotifyContext(context.Background(),
+		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
-	signal.Notify(chanSig, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer func() {
+		cancel()
+	}()
+
+	chanEvt := make(chan time.Time)
 
 	var events []Event
 	var ctr int32
@@ -111,7 +116,8 @@ func main() {
 			   but pressing ctrl-d will cause err == io.EOF
 			*/
 			if err == io.EOF {
-				chanSig <- syscall.SIGTERM
+				// tell main loop we are done.
+				cancel()
 				return
 			}
 			chanEvt <- time.Now()
@@ -127,7 +133,7 @@ loop:
 	for {
 		fmt.Fprintf(os.Stderr, "# Waiting for [%v]> ", ctr)
 		select {
-		case <-chanSig: // got signal, exit
+		case <-ctx.Done(): // either we got signal, or EOF from stdin.
 			break loop
 		case t := <-chanEvt: // got event, record, continue
 			tick("tick", t)
@@ -135,6 +141,11 @@ loop:
 		}
 
 	}
+	// In case we exited loop due to a signal, the stdin goroutine
+	// is still running. Here we close stdin manually to signal the
+	// goroutine to exit. The goroutine will receive EOF, and call
+	// cancel() on the context (again?)
+	os.Stdin.Close()
 
 	tick("exit", time.Now())
 
