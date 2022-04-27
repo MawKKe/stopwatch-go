@@ -63,16 +63,25 @@ func EventsToRecords(events []Event) [][]string {
 }
 
 // DumpCSV writes a sequence of records into output file in CSV mode.
-func DumpCSV(out io.Writer, records [][]string, comment string) (err error) {
-	// All of the errors from here on out will be problems with file writing
-	// the actual nature of the error is more or less identical
-	// This defer function wraps all these errors with approrpiate context; also
-	// note the named return value (error)
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("could not dump CSV: %w", err)
-		}
-	}()
+// Filenames "" and "-" are interpreted as stdout. Comment parameter (if non-empty)
+// will be written as "# <comment>" on the first line of the file.
+func DumpCSV(outFile string, events []Event, comment string) error {
+	if outFile == "-" || outFile == "" {
+		return MarshallEventsCSV(os.Stdout, events, comment)
+	}
+	f, err := os.Create(outFile)
+	if err != nil {
+		return fmt.Errorf("could not create file: %w", err)
+	}
+	defer f.Close()
+	return MarshallEventsCSV(f, events, comment)
+}
+
+func MarshallEventsCSV(out io.Writer, events []Event, comment string) error {
+
+	// convert records to text form
+	records := EventsToRecords(events)
+
 	w := csv.NewWriter(out)
 	if comment != "" {
 		_, err := fmt.Fprintf(out, "# %s\n", comment)
@@ -80,13 +89,21 @@ func DumpCSV(out io.Writer, records [][]string, comment string) (err error) {
 			return err
 		}
 	}
-	err = w.WriteAll(records)
-	return
+	return w.WriteAll(records)
 }
 
 func collect(ctx context.Context, tickChan <-chan struct{}) (events []Event) {
 	var ctr int32
-	events = append(events, Event{Seq: ctr, Timestamp: time.Now(), What: "enter"})
+
+	// Print all info messages to stderr, as data might be printed to stdout
+	fmt.Fprintln(os.Stderr, "# Record: <enter>, Exit: <ctrl+d> or <ctrl+c>")
+
+	tick := func(what string) {
+		events = append(events, Event{Seq: ctr, Timestamp: time.Now(), What: what})
+		ctr++
+	}
+
+	tick("enter")
 loop:
 	for {
 		fmt.Fprintf(os.Stderr, "# Waiting for [%v]> ", ctr)
@@ -94,12 +111,13 @@ loop:
 		case <-ctx.Done():
 			break loop // plain 'break' would break from select, not the loop.
 		case <-tickChan:
-			t := time.Now()
-			events = append(events, Event{Seq: ctr, Timestamp: t, What: "tick"})
-			ctr++
+			tick("tick")
 		}
 	}
-	events = append(events, Event{Seq: ctr, Timestamp: time.Now(), What: "exit"})
+	tick("exit")
+
+	// Make sure next print will be on a fresh line
+	fmt.Fprintln(os.Stderr, "")
 	return
 }
 
@@ -138,9 +156,6 @@ func main() {
 		}
 	}()
 
-	// Print all info messages to stderr, as data might be printed to stdout
-	fmt.Fprintln(os.Stderr, "# Record: <enter>, Exit: <ctrl+d> or <ctrl+c>")
-
 	events := collect(ctx, tickChan)
 
 	// In case we exited loop due to a signal, the stdin goroutine
@@ -149,27 +164,9 @@ func main() {
 	// cancel() on the context (again?)
 	os.Stdin.Close()
 
-	// convert records to text form
-	records := EventsToRecords(events)
-
-	// Make sure next print will be on a fresh line
-	fmt.Fprintln(os.Stderr, "")
-
 	// Write events into file; either stdout or
-	err := func() error {
-		if *outFile == "-" || *outFile == "" {
-			return DumpCSV(os.Stdout, records, *outComment)
-		}
-		f, err := os.Create(*outFile)
-		if err != nil {
-			return fmt.Errorf("could not create file: %w", err)
-		}
-		defer f.Close()
-		return DumpCSV(f, records, *outComment)
-	}()
-
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "ERROR:", err)
+	if err := DumpCSV(*outFile, events, *outComment); err != nil {
+		fmt.Fprintln(os.Stderr, "ERROR: problem writing CSV:", err)
 		os.Exit(1)
 	}
 	os.Exit(0)
