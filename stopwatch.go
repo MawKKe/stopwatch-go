@@ -47,7 +47,9 @@ func GetEventColumnNames() []string {
 	etype := reflect.TypeOf(Event{})
 	for i := 0; i < etype.NumField(); i++ {
 		field := etype.Field(i)
-		hdr = append(hdr, field.Tag.Get("csv"))
+		if fval, ok := field.Tag.Lookup("csv"); ok {
+			hdr = append(hdr, fval)
+		}
 	}
 	return hdr
 }
