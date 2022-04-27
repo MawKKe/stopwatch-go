@@ -75,7 +75,7 @@ func DumpCSV(out io.Writer, records [][]string, comment string) (err error) {
 	}()
 	w := csv.NewWriter(out)
 	if comment != "" {
-		_, err := fmt.Fprintf(out, "# %v\n", comment)
+		_, err := fmt.Fprintf(out, "# %s\n", comment)
 		if err != nil {
 			return err
 		}
