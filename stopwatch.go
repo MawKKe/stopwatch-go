@@ -30,7 +30,7 @@ import (
 
 // Event represents an event to be recorded
 type Event struct {
-	Seq       int32     `csv:"seq"`  // sequence number of the event
+	Seq       int       `csv:"seq"`  // sequence number of the event
 	Timestamp time.Time `csv:"ts"`   // when the event happened
 	What      string    `csv:"what"` // description of the event
 }
@@ -93,7 +93,7 @@ func MarshallEventsCSV(out io.Writer, events []Event, comment string) error {
 }
 
 func collect(ctx context.Context, tickChan <-chan struct{}) (events []Event) {
-	var ctr int32
+	var ctr int
 
 	// Print all info messages to stderr, as data might be printed to stdout
 	fmt.Fprintln(os.Stderr, "# Record: <enter>, Exit: <ctrl+d> or <ctrl+c>")
