@@ -26,14 +26,14 @@ recording equipment (not covered by this application).
 
 [![Go](https://github.com/MawKKe/stopwatch-go/actions/workflows/go.yml/badge.svg)](https://github.com/MawKKe/stopwatch-go/actions/workflows/go.yml)
 
-# Install
+## Install
 
     $ go install github.com/MawKKe/stopwatch-go@latest
 
 This will place the binary `stopwatch-go` into your `$GOPATH/bin/`.
 If that path is in your `$PATH`, you are good to go. Next, see `Usage` below.
 
-# Usage
+## Usage
 
 Run the program; write events into `stdout`:
 
@@ -71,19 +71,19 @@ Here you may notice that each record is separated by approximately one second,
 simulating a phenomena occurring at frequency of 1 Hertz. The recording was
 stopped by pressing `<ctrl+c>` while the program was waiting for a fourth event.
 
-# Dependencies
+## Dependencies
 
 The program is written in Go, version 1.18. It may compile with older compiler versions.
 The program does not have any third party dependencies.
 
-# License
+## License
 
 Copyright 2022 Markus Holmström (MawKKe)
 
 The works under this repository are licenced under Apache License 2.0.
 See file `LICENSE` for more information.
 
-# Contributing
+## Contributing
 
 This project is hosted at https://github.com/MawKKe/stopwatch-go
 
